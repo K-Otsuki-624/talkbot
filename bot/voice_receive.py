@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Callable
@@ -37,6 +38,7 @@ class VoiceReceiveSession:
         silence_seconds: float = 0.8,
         min_pcm_bytes: int = 9600,
     ) -> None:
+        self._logger = logging.getLogger(__name__)
         self.guild = guild
         self._on_utterance = on_utterance
         self._silence_seconds = silence_seconds
@@ -51,6 +53,7 @@ class VoiceReceiveSession:
         self._sink = voice_recv.BasicSink(self._on_voice_data, decode=True)
         voice_client.listen(self._sink)
         self._loop_task = asyncio.create_task(self._flush_loop())
+        self._logger.info("Voice receive session started (guild=%s)", self.guild.id)
 
     async def stop(self, voice_client: voice_recv.VoiceRecvClient) -> None:
         self._running = False
@@ -63,6 +66,7 @@ class VoiceReceiveSession:
         if voice_client.is_listening():
             voice_client.stop_listening()
         await self._flush_all()
+        self._logger.info("Voice receive session stopped (guild=%s)", self.guild.id)
 
     def _on_voice_data(self, user: discord.Member | None, data: voice_recv.VoiceData) -> None:
         if user is None or user.bot:
@@ -87,6 +91,7 @@ class VoiceReceiveSession:
                 member = self.guild.get_member(user_id)
                 if member is None:
                     continue
+                self._logger.info("Voice utterance captured user=%s bytes=%s", member.display_name, len(pcm))
                 result = self._on_utterance(member.display_name, pcm)
                 if asyncio.iscoroutine(result):
                     asyncio.create_task(result)

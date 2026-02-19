@@ -53,9 +53,20 @@ class VoiceHandler:
             return "すでにVCへ接続中です。"
 
         voice_client = await channel.connect(cls=voice_recv.VoiceRecvClient)
-        if interaction.guild and history_channel and isinstance(voice_client, voice_recv.VoiceRecvClient):
+        if not interaction.guild:
+            return f"{channel.name} に参加しました。"
+
+        if history_channel is None:
+            return (
+                f"{channel.name} に参加しましたが、HISTORY_CHANNEL_ID のチャンネルが見つからないため"
+                "音声処理を開始できません。"
+            )
+
+        if isinstance(voice_client, voice_recv.VoiceRecvClient):
             await self.start_listening(interaction.guild, history_channel, voice_client)
-        return f"{channel.name} に参加しました。"
+            return f"{channel.name} に参加しました。音声リスニングを開始しました。"
+
+        return f"{channel.name} に参加しましたが、音声受信クライアントの初期化に失敗しました。"
 
     async def leave(self, interaction: discord.Interaction) -> str:
         if interaction.guild and interaction.guild.voice_client:
