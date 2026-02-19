@@ -124,7 +124,12 @@ class VoiceHandler:
     ) -> str:
         try:
             if not self._vad.has_speech(pcm16_mono):
-                self._logger.info("VAD skipped audio as non-speech (bytes=%s)", len(pcm16_mono))
+                score = getattr(self._vad, "last_normalized", None)
+                self._logger.info(
+                    "VAD skipped audio as non-speech (bytes=%s, normalized=%s)",
+                    len(pcm16_mono),
+                    score,
+                )
                 return ""
 
             transcript = self._whisper.transcribe_ja(wav_bytes)

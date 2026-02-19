@@ -11,13 +11,20 @@ class VADSegmenter:
         # In the design doc, threshold=0.5 is for Silero probability scale.
         # Convert that value to a practical RMS amplitude threshold for PCM.
         if raw > 0.2:
-            self.threshold = max(0.003, raw * 0.04)
+            self.threshold = max(0.0015, raw * 0.01)
         else:
             self.threshold = raw
+        self.last_normalized = 0.0
 
     def has_speech(self, pcm16_mono: bytes) -> bool:
         if not pcm16_mono:
             return False
         rms = audioop.rms(pcm16_mono, 2)
         normalized = min(1.0, rms / 32768.0)
-        return normalized >= self.threshold
+        self.last_normalized = normalized
+        if normalized >= self.threshold:
+            return True
+        # Long chunks that are close to threshold are treated as speech to avoid over-filtering.
+        if len(pcm16_mono) >= 32000 and normalized >= (self.threshold * 0.5):
+            return True
+        return False

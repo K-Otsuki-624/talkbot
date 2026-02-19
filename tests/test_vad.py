@@ -24,3 +24,9 @@ def test_vad_threshold_compatible_with_design_value():
     vad = VADSegmenter(threshold=0.5)
     normal_voice = _pcm_s16le_from_constant(2000, 3200)
     assert vad.has_speech(normal_voice) is True
+
+
+def test_vad_allows_long_near_threshold_chunk():
+    vad = VADSegmenter(threshold=0.5)
+    near = _pcm_s16le_from_constant(120, 20000)
+    assert vad.has_speech(near) is True
