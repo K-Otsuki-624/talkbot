@@ -56,14 +56,10 @@ class DiscordAIBot(commands.Bot):
                 self.settings.permanent_memory_channel_id,
             )
         )
-        # Always sync global commands first so misconfigured guild IDs do not hide commands completely.
-        global_synced = await self.tree.sync()
-        logger.info("Application commands synced globally (count=%s).", len(global_synced))
-
         if self.settings.discord_guild_id > 0:
             guild_obj = discord.Object(id=self.settings.discord_guild_id)
             try:
-                # Copy global commands to target guild for immediate availability.
+                # Dev guild mode: use guild commands only (no duplicate global commands in the same guild).
                 self.tree.copy_global_to(guild=guild_obj)
                 guild_synced = await self.tree.sync(guild=guild_obj)
                 logger.info(
@@ -71,12 +67,21 @@ class DiscordAIBot(commands.Bot):
                     self.settings.discord_guild_id,
                     len(guild_synced),
                 )
+                # Clean up legacy global commands so users don't see duplicates.
+                self.tree.clear_commands(guild=None)
+                await self.tree.sync()
+                logger.info("Global commands cleared to avoid duplicate command listings.")
             except (Forbidden, HTTPException) as exc:
                 logger.warning(
-                    "Guild command sync failed for guild=%s: %s. Global sync is still available.",
+                    "Guild command sync failed for guild=%s: %s. Falling back to global sync.",
                     self.settings.discord_guild_id,
                     exc,
                 )
+                global_synced = await self.tree.sync()
+                logger.info("Application commands synced globally (count=%s).", len(global_synced))
+        else:
+            global_synced = await self.tree.sync()
+            logger.info("Application commands synced globally (count=%s).", len(global_synced))
 
     async def on_ready(self) -> None:
         logger.info("Logged in as %s", self.user)
