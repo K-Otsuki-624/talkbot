@@ -43,6 +43,8 @@ class VoiceHandler:
     async def join(self, interaction: discord.Interaction, history_channel: discord.TextChannel | None = None) -> str:
         if not interaction.user or not isinstance(interaction.user, discord.Member):
             return "VC接続に失敗しました（ユーザー情報が取得できません）。"
+        if not discord.opus.is_loaded():
+            return "Opusライブラリ未ロードのためVC音声処理を開始できません。デプロイ設定を確認してください。"
 
         voice_state = interaction.user.voice
         if not voice_state or not voice_state.channel:
