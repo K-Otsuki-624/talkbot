@@ -63,7 +63,7 @@
   - `discord-bot`: このリポジトリを通常デプロイ（Nixpacks）
   - `voicevox`: 同じリポジトリをDockerデプロイし、Dockerfileパスを `voicevox/Dockerfile` に指定
 - BotをDocker運用したい場合は `Dockerfile.bot` を使用
-- VC音声受信には `libopus` が必要（`nixpacks.toml` / `Dockerfile.bot` で導入済み）
+- VC音声受信には `libopus` が必要（`nixpacks.toml` / `Dockerfile.bot` で `libopus0` / `libopus-dev` を導入）
 - `discord-bot` の環境変数に `.env` の値を設定
 - `VOICEVOX_URL` には `voicevox` サービスのURLを設定
 
