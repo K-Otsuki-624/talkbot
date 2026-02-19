@@ -14,10 +14,13 @@ import discord.ext.voice_recv as voice_recv
 class UserAudioBuffer:
     chunks: list[bytes] = field(default_factory=list)
     last_seen: float = 0.0
+    display_name: str = ""
 
-    def append(self, pcm: bytes) -> None:
+    def append(self, pcm: bytes, display_name: str) -> None:
         self.chunks.append(pcm)
         self.last_seen = time.monotonic()
+        if display_name:
+            self.display_name = display_name
 
     def flush(self) -> bytes:
         if not self.chunks:
@@ -68,13 +71,14 @@ class VoiceReceiveSession:
         await self._flush_all()
         self._logger.info("Voice receive session stopped (guild=%s)", self.guild.id)
 
-    def _on_voice_data(self, user: discord.Member | None, data: voice_recv.VoiceData) -> None:
+    def _on_voice_data(self, user: discord.abc.User | None, data: voice_recv.VoiceData) -> None:
         if user is None or user.bot:
             return
         if not data.pcm:
             return
         buf = self._buffers.setdefault(user.id, UserAudioBuffer())
-        buf.append(data.pcm)
+        display_name = getattr(user, "display_name", "") or getattr(user, "name", "")
+        buf.append(data.pcm, display_name)
 
     async def _flush_loop(self) -> None:
         while self._running:
@@ -89,10 +93,9 @@ class VoiceReceiveSession:
                 if len(pcm) < self._min_pcm_bytes:
                     continue
                 member = self.guild.get_member(user_id)
-                if member is None:
-                    continue
-                self._logger.info("Voice utterance captured user=%s bytes=%s", member.display_name, len(pcm))
-                result = self._on_utterance(member.display_name, pcm)
+                speaker_name = buf.display_name or (member.display_name if member else f"user-{user_id}")
+                self._logger.info("Voice utterance captured user=%s bytes=%s", speaker_name, len(pcm))
+                result = self._on_utterance(speaker_name, pcm)
                 if asyncio.iscoroutine(result):
                     asyncio.create_task(result)
 
@@ -102,8 +105,7 @@ class VoiceReceiveSession:
             if len(pcm) < self._min_pcm_bytes:
                 continue
             member = self.guild.get_member(user_id)
-            if member is None:
-                continue
-            result = self._on_utterance(member.display_name, pcm)
+            speaker_name = buf.display_name or (member.display_name if member else f"user-{user_id}")
+            result = self._on_utterance(speaker_name, pcm)
             if asyncio.iscoroutine(result):
                 await result
