@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from openai import OpenAI
 
 from ai.prompt import build_system_prompt
@@ -31,4 +33,11 @@ class GPTResponder:
             max_tokens=200,
         )
         text = response.choices[0].message.content or ""
-        return text.strip()
+        return self._sanitize_reply(text.strip())
+
+    @staticmethod
+    def _sanitize_reply(text: str) -> str:
+        cleaned = text.strip()
+        # Remove speaker-style prefixes like "rayse: ..." or "ずんたろう：..."
+        cleaned = re.sub(r"^[^:\n：]{1,40}\s*[:：]\s*", "", cleaned)
+        return cleaned.strip()

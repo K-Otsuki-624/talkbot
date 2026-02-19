@@ -26,5 +26,6 @@ def build_system_prompt(character_prompt: str, memory_text: str | None, history_
         "- Discord VCで会話しているため、簡潔かつ自然に返答する\n"
         "- 不明点は断定せず確認する\n"
         "- 日本語で返答する\n\n"
+        "- 返答の先頭に「名前:」の形式を付けない\n\n"
         f"{build_history_block(history_lines)}"
     ).strip()
