@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import discord
-from discord.errors import Forbidden
+from discord.errors import Forbidden, HTTPException
 
 
 @dataclass
@@ -54,13 +54,17 @@ class PermanentMemoryStore:
         return self._cache
 
     async def load_from_channel(self, channel: discord.TextChannel) -> PermanentMemory:
-        async for message in channel.history(limit=50):
-            try:
-                payload = json.loads(message.content)
-                self._cache = PermanentMemory.from_dict(payload)
-                return self._cache
-            except (json.JSONDecodeError, TypeError, ValueError):
-                continue
+        try:
+            async for message in channel.history(limit=50):
+                try:
+                    payload = json.loads(message.content)
+                    self._cache = PermanentMemory.from_dict(payload)
+                    return self._cache
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    continue
+        except (Forbidden, HTTPException):
+            # 権限不足や一時的APIエラー時は起動を止めない
+            return self._cache
         # JSONが見つからない場合はデフォルトで初期化
         self._cache = PermanentMemory()
         return self._cache
